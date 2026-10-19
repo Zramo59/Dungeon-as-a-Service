@@ -1,0 +1,33 @@
+# Bonus B-4 : PostgreSQL au lieu de SQLite.
+#   docker compose up -d db      -> seulement la base (API lancée en local avec DATABASE_URL)
+#   docker compose up --build    -> base + API sur http://127.0.0.1:8000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dungeon
+      POSTGRES_PASSWORD: dungeon
+      POSTGRES_DB: dungeon
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dungeon -d dungeon"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://dungeon:dungeon@db:5432/dungeon
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-moi-en-production-avec-un-vrai-secret}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
